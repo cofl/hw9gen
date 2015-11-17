@@ -43,7 +43,7 @@ public class Gen {
     private static PrintStream out = System.out;
 
     private static final Random random = new Random(); // rng
-    private static final int MAX_COMMANDS = 150; // max number of commands a process can have.
+    private static int MAX_COMMANDS = 150; // max number of commands a process can have.
 
     public static void main(String... args) {
         int cores = 4;
@@ -66,6 +66,7 @@ public class Gen {
             options.addOption("h", "help", false, "Show this help text.");
             options.addOption("s", "strict", false, "Enable strict mode (don't generate repeats as the first task).");
             options.addOption("d", "disable-output", false, "Disable printing to standard out (only applies if an ouput file has been set).");
+            options.addOption("m", "max-commands", true, "Set the maximum number of commands to generate (Must not be less than 5).");
             options.addOption(Option.builder("W").hasArgs().valueSeparator('=').build());
             CommandLine cmd = new DefaultParser().parse(options, args);
             if(cmd.hasOption("h")) {
@@ -83,15 +84,14 @@ public class Gen {
             strictMode = cmd.hasOption("s");
             genNegatives = cmd.hasOption("n");
             disableOutput = cmd.hasOption("d");
-            if(cmd.hasOption("c")) {
+            if(cmd.hasOption("c"))
                 cores = Integer.parseInt(cmd.getOptionValue("c"));
-            }
-            if(cmd.hasOption("p")) {
+            if(cmd.hasOption("p"))
                 nproc = Integer.parseInt(cmd.getOptionValue("p"));
-            }
-            if(cmd.hasOption("o")) {
+            if(cmd.hasOption("o"))
                 out = new PrintStream(new FileOutputStream(new File(cmd.getOptionValue("o"))));
-            }
+            if(cmd.hasOption("m"))
+                MAX_COMMANDS = Integer.parseInt(cmd.getOptionValue("m"));
         } catch(ParseException | NumberFormatException | IOException e) {
             System.err.println("Fatal error while parsing command-line options");
             System.exit(1);
