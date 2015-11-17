@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.function.Supplier;
@@ -10,6 +11,7 @@ import java.util.function.Supplier;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -19,22 +21,41 @@ import org.apache.commons.cli.ParseException;
  * @author Christian LaCourt
  */
 public class Gen {
+    private static class Generator implements Supplier<String> {
+        private String name;
+        private Supplier<String> generator;
+        Generator(String name, Supplier<String> generator){
+            this.name = name;
+            this.generator = generator;
+        }
+        String getName(){
+            return name;
+        }
+        @Override public String get(){
+            return generator.get();
+        }
+    }
     private static int level = 0; // indentation, multiples of 2.
     private static boolean genNegatives = false; // generate negative values?
-    private static boolean justGeneratedRepeat = false; // just generated a
-                                                        // repeat tasks's start?
+    private static boolean strictMode = false;
+    private static boolean disableOutput = false;
+    private static boolean justGeneratedRepeat = false; // just generated a repeat tasks's start?
+    private static PrintStream out = System.out;
 
     private static final Random random = new Random(); // rng
-    private static final int MAX_COMMANDS = 150; // max number of commands a
-                                                 // process can have.
+    private static final int MAX_COMMANDS = 150; // max number of commands a process can have.
 
     public static void main(String... args) {
         int cores = 4;
         int nproc = 1;
-        PrintStream out = System.out;
 
         int max = 0; // maximum key in generators
-        TreeMap<Integer, Supplier<String>> generators = new TreeMap<>();
+        TreeMap<Integer, Generator> generators = new TreeMap<>();
+        HashMap<String, Integer> weights = new HashMap<>();
+        weights.put("wait", 2);
+        weights.put("repeat", 12);
+        weights.put("usedisk", 9);
+        weights.put("usecpu", 14);
 
         try {
             Options options = new Options();
@@ -43,6 +64,9 @@ public class Gen {
             options.addOption("p", "num-processes", true, "The number of processes to be generated. Defaults to 1.");
             options.addOption("o", "output-file", true, "A file to write the generated sample input to.");
             options.addOption("h", "help", false, "Show this help text.");
+            options.addOption("s", "strict", false, "Enable strict mode (don't generate repeats as the first task).");
+            options.addOption("d", "disable-output", false, "Disable printing to standard out (only applies if an ouput file has been set).");
+            options.addOption(Option.builder("W").hasArgs().valueSeparator('=').build());
             CommandLine cmd = new DefaultParser().parse(options, args);
             if(cmd.hasOption("h")) {
                 HelpFormatter f = new HelpFormatter();
@@ -50,7 +74,15 @@ public class Gen {
                 f.printHelp(usage, "Generates random input for MTU CS1131 Fall 2015 HW9.", options, "", true);
                 System.exit(0);
             }
+            if(cmd.hasOption("W")){
+                String[] opts = cmd.getOptionValues("W");
+                for(int i = 0; i < opts.length; i += 2){
+                    weights.put(opts[i].toLowerCase(), Integer.parseInt(opts[i + 1]));
+                }
+            }
+            strictMode = cmd.hasOption("s");
             genNegatives = cmd.hasOption("n");
+            disableOutput = cmd.hasOption("d");
             if(cmd.hasOption("c")) {
                 cores = Integer.parseInt(cmd.getOptionValue("c"));
             }
@@ -66,11 +98,11 @@ public class Gen {
         }
 
         // == WAIT ==
-        generators.put(0, () -> String.format("%" + level + "swait %d", "", random.nextInt(100) + 1));
-        max += 2;
+        generators.put(0, new Generator("wait", () -> String.format("%" + level + "swait %d", "", random.nextInt(100) + 1))); 
+        max += weights.get("wait");
 
         // == REPEAT ==
-        generators.put(max, () -> {
+        generators.put(max, new Generator("repeat", () -> {
             if(random.nextBoolean() && level > 2 && !justGeneratedRepeat) {
                 level -= 2;
                 justGeneratedRepeat = false;
@@ -85,34 +117,42 @@ public class Gen {
             level += 2;
             justGeneratedRepeat = true;
             return text;
-        });
-        max += 20;
+        }));
+        max += weights.get("repeat");
 
         // == USE DISK ==
-        generators.put(max, () -> String.format("%" + level + "suse Disk %d", "", (random.nextBoolean() && genNegatives)?-1:random.nextInt(1024)));
-        max += 9;
+        generators.put(max, new Generator("usedisk", () -> String.format("%" + level + "suse Disk %d", "", (random.nextBoolean() && genNegatives)?-1:random.nextInt(1024))));
+        max += weights.get("usedisk");
 
         // == USE CPU ==
-        generators.put(max, () -> String.format("%" + level + "suse CPU %d", "", (random.nextDouble() < 0.1 && genNegatives?-1:1) * random.nextInt(random.nextDouble() < 0.2?100:1500)));
-        max += 14;
+        generators.put(max, new Generator("usecpu", () -> String.format("%" + level + "suse CPU %d", "", (random.nextDouble() < 0.1 && genNegatives?-1:1) * random.nextInt(random.nextDouble() < 0.2?100:1500))));
+        max += weights.get("usecpu");
 
-        out.println(cores);
+        writeln(cores);
         for(int cproc = 1; cproc <= nproc; cproc++) {
-            out.printf("process%d%n", cproc);
+            writef("process%d%n", cproc);
             level = 2;
-            for(int numCommands = getNumCommands(); numCommands > 0; numCommands--) {
-                out.println(generators.floorEntry(random.nextInt(max)).getValue().get());
+            int numCommands = getNumCommands();
+            if(strictMode){
+                numCommands--;
+                Generator g = generators.floorEntry(random.nextInt(max)).getValue();
+                while(g.getName().equals("repeat"))
+                    g = generators.floorEntry(random.nextInt(max)).getValue();
+                writeln(g.get());
+            }
+            for(; numCommands > 0; numCommands--) {
+                writeln(generators.floorEntry(random.nextInt(max)).getValue().get());
             }
             while(level > 0) {
                 level -= 2;
                 if(level == 0) {
-                    out.println(";");
+                    writeln(";");
                 } else {
-                    out.printf("%" + level + "s%s%n", "", ";");
+                    writef("%" + level + "s%s%n", "", ";");
                 }
             }
         }
-        out.println("end");
+        writeln("end");
         if(out != System.out) {
             out.close();
             System.out.println("Generation complete.");
@@ -127,5 +167,27 @@ public class Gen {
         if(distrib > range)
             distrib = range;
         return (int) Math.round((MAX_COMMANDS - 4) * distrib / range) + 4;
+    }
+    
+    private static void writef(String formatString, Object... arguments){
+        if(out != System.out){
+            out.printf(formatString, arguments);
+            if(!disableOutput){
+                System.out.printf(formatString, arguments);
+            }
+        } else if(!disableOutput){
+            System.out.printf(formatString, arguments);
+        }
+    }
+    
+    private static void writeln(Object string){
+        if(out != System.out){
+            out.println(string);
+            if(!disableOutput){
+                System.out.println(string);
+            }
+        } else if(!disableOutput){
+            System.out.println(string);
+        }
     }
 }

@@ -18,7 +18,13 @@ If running from a jar:
 
 - `-c, --cores <arg>`: The number of CPU cores to be used in the simulator. Defaults to 4.
 - `-h, --help`: Shows the help text.
-- `-n, --allow-negatives`: Turn on generating negative arguments for CPU and Disk operations.
+- `-n, --allow-negatives`: Turn on generating negative arguments for CPU and Disk operations. Defaults to off.
 - `-o, --output-file <arg>`: Set the file to output to. If this is not provided, the output is printed to the standard output.
 - `-p, --num-processes <arg>`: The number of processes to be generated. Defaults to 1.
-
+- `-s, --strict`: Enable strict mode (don't generate repeats as the first task). Defaults to off.
+- `-d, --disable-output`: Disable printing to standard out (only applies if an ouput file has been set). Defaults to off.
+- `-W<name>=<weight>`: Set custom weighting for each generator
+  - wait: defaults to 2
+  - repeat: defaults to 12
+  - usecpu: defaults to 9
+  - usedisk: defaults to 14
