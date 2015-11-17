@@ -26,5 +26,5 @@ If running from a jar:
 - `-W<name>=<weight>`: Set custom weighting for each generator
   - wait: defaults to 2
   - repeat: defaults to 12
-  - usecpu: defaults to 9
-  - usedisk: defaults to 14
+  - usedisk: defaults to 9
+  - usecpu: defaults to 14
