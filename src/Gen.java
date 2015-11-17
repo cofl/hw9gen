@@ -98,17 +98,17 @@ public class Gen {
 
         out.println(cores);
         for(int cproc = 1; cproc <= nproc; cproc++) {
-            System.out.printf("process%d%n", cproc);
+            out.printf("process%d%n", cproc);
             level = 2;
             for(int numCommands = getNumCommands(); numCommands > 0; numCommands--) {
-                System.out.println(generators.floorEntry(random.nextInt(max)).getValue().get());
+                out.println(generators.floorEntry(random.nextInt(max)).getValue().get());
             }
             while(level > 0) {
                 level -= 2;
                 if(level == 0) {
-                    System.out.println(";");
+                    out.println(";");
                 } else {
-                    System.out.printf("%" + level + "s%s%n", "", ";");
+                    out.printf("%" + level + "s%s%n", "", ";");
                 }
             }
         }
