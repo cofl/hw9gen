@@ -24,7 +24,6 @@ If running from a jar:
 - `-m, --max-commands <arg>`: The maximum number of commands to generate per process. Defaults to 150.
 - `-n, --allow-negatives`: Turn on generating negative arguments for CPU and Disk operations. Defaults to off.
 - `-o, --output-file <arg>`: Set the file to output to. If this is not provided, the output is printed to the standard output.
-- `-s, --strict`: Enable strict mode (don't generate repeats as the first task). Defaults to off.
 - `-d, --disable-output`: Disable printing to standard out (only applies if an ouput file has been set). Defaults to off.
 - `-W<name>=<weight>`: Set custom weighting for each generator
   - wait: defaults to 2

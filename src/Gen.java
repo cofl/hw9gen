@@ -47,9 +47,8 @@ public class Gen {
 
     private static int level = 0; // indentation, multiples of 2.
     private static boolean genNegatives = false; // generate negative values?
-    private static boolean strictMode = false; // don't generate a repeat at the start of a process
     private static boolean disableOutput = false; // disable standard output when outputting to a file
-    private static boolean justGeneratedRepeat = false; // just generated a repeat tasks's start?
+    private static boolean justGeneratedRepeat; // just generated a repeat tasks's start?
     private static PrintStream out = System.out;
 
     private static final Random random = new Random(); // rng
@@ -75,7 +74,6 @@ public class Gen {
             options.addOption("p", "num-processes", true, "The number of processes to be generated. Defaults to 1.");
             options.addOption("o", "output-file", true, "A file to write the generated sample input to.");
             options.addOption("h", "help", false, "Show this help text.");
-            options.addOption("s", "strict", false, "Enable strict mode (don't generate repeats as the first task).");
             options.addOption("d", "disable-output", false, "Disable printing to standard out (only applies if an ouput file has been set).");
             options.addOption("m", "max-commands", true, "Set the maximum number of commands to generate (Must not be less than 5).");
             options.addOption("v", "version", false, "Shows the current version of the program.");
@@ -83,7 +81,7 @@ public class Gen {
             CommandLine cmd = new DefaultParser().parse(options, args);
             if(cmd.hasOption("h")) {
                 HelpFormatter f = new HelpFormatter();
-                System.out.println("hw9gen v0.3.0 Cordial Cobalt");
+                System.out.println("hw9gen v0.3.1 Cordial Cobalt");
                 String usage = "java -cp ../lib/commons-cli-1.3.1/commons-cli-1.3.1.jar;./ Gen OR java -jar Gen.jar";
                 f.printHelp(usage, "Generates random input for MTU CS1131 Fall 2015 HW9.", options, "", true);
                 System.exit(0);
@@ -97,7 +95,6 @@ public class Gen {
                 for(final String name: opts.stringPropertyNames())
                     weights.put(name, Math.max(0, Integer.parseInt(opts.getProperty(name))));
             }
-            strictMode = cmd.hasOption("s");
             genNegatives = cmd.hasOption("n");
             disableOutput = cmd.hasOption("d");
             if(cmd.hasOption("c"))
@@ -142,11 +139,11 @@ public class Gen {
         for(int cproc = 1; cproc <= nproc; cproc++) {
             writef("process%d%n", cproc);
             level = 2;
-            justGeneratedRepeat = strictMode; // not really, but tricks the generator.
+            justGeneratedRepeat = true; // not really, but tricks the generator into not generating a repeat at the start of a process.
             for(int numCommands = getNumCommands(); numCommands > 1; numCommands--)
                 generate();
             // next, force the last command to not be a repeat.
-            justGeneratedRepeat = true;
+            justGeneratedRepeat = true; // not really, but tricks the generator into not generating an empty repeat at the end of a process.
             generate();
             while(level > 0) {
                 level -= 2;
