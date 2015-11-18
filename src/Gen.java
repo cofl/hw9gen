@@ -155,10 +155,6 @@ public class Gen {
             }
         }
         writeln("end");
-        if(out != System.out) {
-            out.close();
-            System.out.println("Generation complete.");
-        }
     }
 
     /**
@@ -206,7 +202,7 @@ public class Gen {
             if(!disableOutput) {
                 System.out.printf(formatString, arguments);
             }
-        } else if(!disableOutput) {
+        } else {
             System.out.printf(formatString, arguments);
         }
     }
@@ -220,7 +216,7 @@ public class Gen {
             if(!disableOutput) {
                 System.out.println(string);
             }
-        } else if(!disableOutput) {
+        } else {
             System.out.println(string);
         }
     }
